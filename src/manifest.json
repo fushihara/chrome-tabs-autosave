@@ -1,0 +1,14 @@
+{
+	"manifest_version": 2,
+	"name": "ブックマーク自動保存",
+	"version": "1",
+	"background": {
+		"scripts": ["background.js"],
+		"persistent": false
+	},
+	"permissions": [
+		"alarms",
+		"bookmarks",
+		"tabs"
+	]
+}
