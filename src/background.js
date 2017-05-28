@@ -22,7 +22,12 @@ chrome.alarms.onAlarm.addListener(function(alarm) {
 	}
 });
 
-function save(){
+async function save(){
+	let rootDirectory = await getRootBookmarkDirectoryId();
+	if( rootDirectory == null ){
+		let topRootDirectory = (await getBookmarkTree())[0];
+		await makeDirectory(topRootDirectory,rootBookmarkName);
+	}
 	saveTabsForDaily();
 	saveTabsForHourl();
 	deleteOldHourlFolder();
