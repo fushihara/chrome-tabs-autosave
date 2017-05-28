@@ -1,9 +1,20 @@
 const rootBookmarkName=["ブックマーク バー","自動タブ保存"];
 const snapShotDirectoryName = "スナップショット保存";
-save();
+const dailyDirectoryname    = "デイリー保存";
 
+chrome.runtime.onStartup.addListener(()=>{save();});
 chrome.runtime.onInstalled.addListener(function() {
-	chrome.alarms.create('save', { periodInMinutes: 55 });
+	//各時の0分～55分 次の時に初回発火
+	//56分～59分 次の次の時に発火
+	const now = new Date();
+	let  when = new Date(now.getFullYear(),now.getMonth(),now.getDate(),now.getHours()).getTime();
+	if( now.getMinutes() <= 55 ){
+		when += 1*60*60*1000;
+	}else{
+		when += 2*60*60*1000;
+	}
+	chrome.alarms.create('save', { when:when , periodInMinutes: 60 });
+	save();
 });
 chrome.alarms.onAlarm.addListener(function(alarm) {
 	if ( alarm.name == "save" ){
@@ -15,6 +26,32 @@ function save(){
 	saveTabsForDaily();
 	saveTabsForHourl();
 	deleteOldHourlFolder();
+}
+function saveTabsForDaily(){
+	// 1日一回、全てのタブを保存する。既に日別のフォルダがあったらスキップ
+	// デイリー保存/ 2017/01/01 / ウィンドウ0 / 色々
+	const d = new Date();
+	const folderNameYear  = d.getFullYear() + "";
+	const folderNameMonth = ("00"+(d.getMonth()+1)).substr(-2);
+	const folderNameDate  = ("00"+(d.getDate())).substr(-2);
+	saveAllTabs([ dailyDirectoryname , folderNameYear , folderNameMonth , folderNameDate ]);
+}
+function saveTabsForHourl(){
+	// 1時間に1回、全てのタブを保存する。
+	const d = new Date();
+	let timeFormat = "";
+	timeFormat += d.getFullYear();
+	timeFormat += "/";
+	timeFormat += ("00"+(d.getMonth()+1)).substr(-2);
+	timeFormat += "/";
+	timeFormat += ("00"+(d.getDate())).substr(-2);
+	timeFormat += " ";
+	timeFormat += ("00"+(d.getHours())).substr(-2);
+	timeFormat += ":";
+	timeFormat += ("00"+(d.getMinutes())).substr(-2);
+	timeFormat += ":";
+	timeFormat += ("00"+(d.getSeconds())).substr(-2);
+	saveAllTabs([ snapShotDirectoryName , timeFormat ]);
 }
 async function deleteOldHourlFolder(){
 	//スナップショット保存から一番古いフォルダを消す
@@ -35,29 +72,6 @@ async function deleteOldHourlFolder(){
 		deleteFolderId = a[0].id;
 	}
 	await removeTree( deleteFolderId );
-}
-function saveTabsForHourl(){
-	// 1時間に1回、全てのタブを保存する。
-	const d = new Date();
-	let timeFormat = "";
-	timeFormat += d.getFullYear();
-	timeFormat += "/";
-	timeFormat += ("00"+(d.getMonth()+1)).substr(-2);
-	timeFormat += "/";
-	timeFormat += ("00"+(d.getDate())).substr(-2);
-	timeFormat += " ";
-	timeFormat += ("00"+(d.getHours())).substr(-2);
-	timeFormat += ":";
-	timeFormat += ("00"+(d.getMinutes())).substr(-2);
-	timeFormat += ":";
-	timeFormat += ("00"+(d.getSeconds())).substr(-2);
-	saveAllTabs([ snapShotDirectoryName , timeFormat ]);
-}
-function saveTabsForDaily(){
-	// 1日一回、全てのタブを保存する。既に日別のフォルダがあったらスキップ
-	// デイリー保存/ 2017/01/01 / ウィンドウ0 / 色々
-	const d = new Date();
-	saveAllTabs([ "デイリー保存" , d.getFullYear() + "" , ("00"+(d.getMonth()+1)).substr(-2) , ("00"+(d.getDate())).substr(-2) ]);
 }
 async function saveAllTabs(directoryName){
 	// 指定されたフォルダに全てのタブを保存する。タブが存在したら何もせず戻る
